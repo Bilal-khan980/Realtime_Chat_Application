@@ -9,6 +9,7 @@ function App() {
       <BrowserRouter>
         <div className="bg-slate-400 h-screen w-screen flex justify-center items-center">
           <Routes>
+            <Route path="/Dashboard" element></Route>
             <Route path="/" element={<Navigate to="/login" />} />
             <Route path="/register" element={<Register />}></Route>
 
