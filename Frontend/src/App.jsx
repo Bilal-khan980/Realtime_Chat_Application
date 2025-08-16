@@ -1,6 +1,7 @@
 import "./App.css";
 import Register from "./Components/Register";
 import Login from "./Components/Login";
+import Dashboard from "./Components/Dashboard";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 function App() {
@@ -9,7 +10,7 @@ function App() {
       <BrowserRouter>
         <div className="bg-slate-400 h-screen w-screen flex justify-center items-center">
           <Routes>
-            <Route path="/Dashboard" element></Route>
+            <Route path="/Dashboard" element={<Dashboard />}></Route>
             <Route path="/" element={<Navigate to="/login" />} />
             <Route path="/register" element={<Register />}></Route>
 
