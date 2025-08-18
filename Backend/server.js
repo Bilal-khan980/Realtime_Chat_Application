@@ -1,0 +1,84 @@
+const express = require("express");
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const cors = require("cors");
+
+const User = require("./schemas/user");
+
+const app = express();
+const port = 8000;
+const JWT_SECRET = "#$%^&*(BBbb#$%^&xyviybvg$%^&FCUV56^UYHGVTY&%$RDD4&&567#$%^&8765"; 
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+const mongouri = "mongodb+srv://Bilalkhan:Pakistan@cluster1.moct8fi.mongodb.net/Chatapp";
+mongoose
+  .connect(mongouri, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch((err) => console.log("❌ DB connection error:", err.message));
+
+
+app.post("/register", async (req, res) => {
+  try {
+    const { fullName, email, password } = req.body;
+
+    const alreadyExists = await User.findOne({ email });
+    if (alreadyExists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      fullName,
+      email,
+      password: hashedPassword,
+    });
+
+    await newUser.save();
+    return res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    console.error("Error registering user:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "User not found" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: "Invalid password" });
+
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "1h" });
+
+    return res.status(200).json({ message: "Login successful", token , user });
+  } catch (error) {
+    console.error("Error logging in user:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+function authMiddleware(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; 
+
+  if (!token) return res.status(401).json({ message: "Access denied, no token provided" });
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(403).json({ message: "Invalid token" });
+    req.user = decoded; 
+    next();
+  });
+}
+
+
+app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
+});
