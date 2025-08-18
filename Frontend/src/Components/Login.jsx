@@ -6,10 +6,27 @@ function Register() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
-    console.log({ email, password });
-    navigate("/Dashboard");
+
+    const res = await fetch("http://localhost:8000/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+
+    });
+
+    const data = await res.json();
+    if (res.status === 200) {
+      alert("Login successful");
+      localStorage.setItem("token", data.token); // Store token in local storage
+      window.location.href = "/dashboard"; // Redirect to dashboard
+    } else {
+      alert(data.message || "Login failed");
+    };
+
   };
 
   return (

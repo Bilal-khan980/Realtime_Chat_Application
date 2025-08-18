@@ -5,20 +5,30 @@ import Dashboard from "./Components/Dashboard";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 function App() {
-  return (
-    <>
-      <BrowserRouter>
-        <div className="bg-slate-400 h-screen w-screen flex justify-center items-center">
-          <Routes>
-            <Route path="/Dashboard" element={<Dashboard />}></Route>
-            <Route path="/" element={<Navigate to="/login" />} />
-            <Route path="/register" element={<Register />}></Route>
+  const token = localStorage.getItem("token"); // ✅ check token here
 
-            <Route path="/login" element={<Login />}></Route>
-          </Routes>
-        </div>
-      </BrowserRouter>
-    </>
+  return (
+    <BrowserRouter>
+      <div className="bg-slate-400 h-screen w-screen flex justify-center items-center">
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={token ? <Dashboard /> : <Navigate to="/login" />}
+          />
+
+          <Route
+            path="/login"
+            element={token ? <Navigate to="/dashboard" /> : <Login />}
+          />
+          <Route
+            path="/register"
+            element={token ? <Navigate to="/dashboard" /> : <Register />}
+          />
+
+          <Route path="/" element={<Navigate to="/login" />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
 

@@ -23,7 +23,7 @@ mongoose
 
 app.post("/register", async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { fullname, email, password } = req.body;
 
     const alreadyExists = await User.findOne({ email });
     if (alreadyExists) {
@@ -33,7 +33,7 @@ app.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
-      fullName,
+      fullname,
       email,
       password: hashedPassword,
     });
@@ -78,6 +78,18 @@ function authMiddleware(req, res, next) {
   });
 }
 
+
+app.use("/userinfo", authMiddleware, (req, res) => {
+  User.findById(req.user.id, "-password")
+    .then(user => {
+      if (!user) return res.status(404).json({ message: "User not found" });
+      res.status(200).json({ user });
+    })
+    .catch(err => {
+      console.error("Error fetching user info:", err);
+      res.status(500).json({ message: "Internal server error" });
+    });
+});
 
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);

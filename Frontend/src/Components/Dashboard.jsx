@@ -1,8 +1,42 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Phone, Video } from "lucide-react"; // Call + Video icons
 import profileimage from "../assets/pfp.jpg";
 
 function Dashboard() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login"; // Redirect if no token
+        return;
+      }
+
+      try {
+        const res = await fetch("http://localhost:8000/userinfo", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.status === 200) {
+          const data = await res.json();
+          setUser(data.user);
+          console.log("✅ User data fetched successfully:", data);
+        } else {
+          console.error("❌ Failed to fetch user data");
+        }
+      } catch (error) {
+        console.error("⚠️ Error fetching user data:", error);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
   const contacts = [
     {
       id: 1,
@@ -52,9 +86,9 @@ function Dashboard() {
           </div>
           <div className="ml-4">
             <h2 className="text-neutral-950 text-xl font-semibold">
-              Bilal Khan
+              {user?.fullname || "Loading..."}
             </h2>
-            <p className="text-sm text-gray-500">My Account</p>
+            <p className="text-sm text-gray-500">{user?.email || "My Account"}</p>
           </div>
         </div>
 
@@ -85,14 +119,14 @@ function Dashboard() {
       {/* CENTER CHAT SECTION */}
       <div className="w-[50%] h-screen flex flex-col">
         {/* Chat Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-300 bg-slate-800 shadow text-black">
-          <div className="flex items-center gap-3 text-black">
+        <div className="flex items-center justify-between p-4 border-b border-gray-300 bg-slate-800 shadow">
+          <div className="flex items-center gap-3">
             <img
               src={randomUser.img}
               alt={randomUser.name}
               className="w-12 h-12 rounded-full object-cover"
             />
-            <h2 className="text-lg font-semibold text-black-800">
+            <h2 className="text-lg font-semibold text-gray-800">
               {randomUser.name}
             </h2>
           </div>
@@ -112,37 +146,20 @@ function Dashboard() {
             <div className="max-w-[40%] bg-slate-400 p-3 m-2 rounded-xl">
               Halojfnenfaevnlvnvds afjneafenfnsdfvndsnvlk
             </div>
-            <div className="max-w-[40%] bg-slate-800 p-3 ml-auto m-2 rounded-xl">
-              Lorem ipsum dolor, sit amet consectetur adipisicing elit.
-              Perferendis provident molestiae qui facilis, commodi nesciunt
-              expedita ab aspernatur tenetur necessitatibus vitae, fuga dolor
-              sapiente dicta eos saepe aperiam perspiciatis. Sed.
+            <div className="max-w-[40%] bg-slate-800 p-3 ml-auto m-2 rounded-xl text-white">
+              Lorem ipsum dolor sit amet consectetur adipisicing elit.
             </div>
-
             <div className="max-w-[40%] bg-slate-400 p-3 m-2 rounded-xl">
-              Halojfnenfaevnlvnvds afjneafenfnsdfvndsnvlk
+              Another message on left
             </div>
-            <div className="max-w-[40%] bg-slate-800 p-3 ml-auto m-2 rounded-xl">
-              Lorem ipsum dolor, sit amet consectetur adipisicing elit.
-              Perferendis provident molestiae qui facilis, commodi nesciunt
-              expedita ab aspernatur tenetur necessitatibus vitae, fuga dolor
-              sapiente dicta eos saepe aperiam perspiciatis. Sed.
-            </div>
-
-            <div className="max-w-[40%] bg-slate-400 p-3 m-2 rounded-xl">
-              Halojfnenfaevnlvnvds afjneafenfnsdfvndsnvlk
-            </div>
-            <div className="max-w-[40%] bg-slate-800 p-3 ml-auto m-2 rounded-xl">
-              Lorem ipsum dolor, sit amet consectetur adipisicing elit.
-              Perferendis provident molestiae qui facilis, commodi nesciunt
-              expedita ab aspernatur tenetur necessitatibus vitae, fuga dolor
-              sapiente dicta eos saepe aperiam perspiciatis. Sed.
+            <div className="max-w-[40%] bg-slate-800 p-3 ml-auto m-2 rounded-xl text-white">
+              Another message on right
             </div>
           </div>
         </div>
 
         {/* Chat Input */}
-        <div className="p-3 border-t border-gray-300 bg-white flex items-center bg-slate-600">
+        <div className="p-3 border-t border-gray-300 bg-slate-600 flex items-center">
           <input
             type="text"
             placeholder="Type a message"

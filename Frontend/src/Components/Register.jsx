@@ -1,14 +1,40 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link  } from "react-router-dom";
 
 function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullname, setFullname] = useState("");
 
-  const handleSubmit = (e) => {
+
+  const handleSubmit = async(e) => {
     e.preventDefault();
-    console.log({ fullname, email, password });
+
+    try {
+      const res = await fetch("http://localhost:8000/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fullname, email, password }),
+
+      });
+      
+      const data = await res.json();
+      if (res.status === 201) {
+        alert("Registration successful");
+        setEmail("");
+        setPassword("");
+        setFullname("");
+        window.location.href = "/login"; // Redirect to login page
+      } else {
+        alert(data.message || "Registration failed");
+      }
+    } catch (error) {
+      console.error("Error registering user:", error);  
+    }
+   
+
   };
 
   return (
