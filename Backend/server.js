@@ -5,6 +5,9 @@ const jwt = require("jsonwebtoken");
 const cors = require("cors");
 
 const User = require("./schemas/user");
+const Chats = require("./schemas/chat");
+const Message = require("./schemas/message");
+const chats = require("./schemas/chat");
 
 const app = express();
 const port = 8000;
@@ -21,6 +24,7 @@ mongoose
   .catch((err) => console.log("❌ DB connection error:", err.message));
 
 
+//Make a new user;
 app.post("/register", async (req, res) => {
   try {
     const { fullname, email, password } = req.body;
@@ -46,6 +50,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
+//login a user
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -62,6 +67,7 @@ app.post("/login", async (req, res) => {
   } catch (error) {
     console.error("Error logging in user:", error);
     return res.status(500).json({ message: "Internal server error" });
+
   }
 });
 
@@ -78,7 +84,7 @@ function authMiddleware(req, res, next) {
   });
 }
 
-
+//get user information
 app.use("/userinfo", authMiddleware, (req, res) => {
   User.findById(req.user.id, "-password")
     .then(user => {
@@ -91,6 +97,105 @@ app.use("/userinfo", authMiddleware, (req, res) => {
     });
 });
 
+//create new chat
+app.post("/chats", async (req, res) => { 
+  try {
+    const { senderId, receiverId } = req.body;
+    const newConversation = new Chats({ members: [senderId, receiverId] });
+    const savedConversation = await newConversation.save();
+    res.status(201).json(savedConversation);
+  } catch (error) {
+    console.error("Error creating chat:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+//get all chats for a user
+app.get('/chats/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const chats = await Chats.find({members: { $in: [userId] }});
+
+    const chatsdata = Promise.all(
+      chats.map(async (chats) => {
+        const receiverId = chats.members.find(
+          (member) => member !== userId
+        );
+
+        const user = await User.findById(receiverId);
+
+        return {
+          user: {
+            email: user.email,
+            fullname: user.fullname
+          },
+          chats: chats._id
+        };
+      })
+    );
+
+    res.status(200).json(await chatsdata);
+  } catch (error) {
+    console.log(error, 'Error');
+  }
+});
+
+app.post("/sendmessage", async (req, res) => { 
+  try {
+    const { chatId, senderId, message } = req.body;
+
+    const newMessage = new Message({
+      chatId,
+      senderId,
+      message
+    });
+
+    const savedMessage = await newMessage.save();
+    res.status(201).json(savedMessage);
+  } catch (error) {
+    console.error("Error sending message:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/getmessages/:chatId", async (req, res) => {
+  try {
+    const chatId = req.params.chatId;
+    const messages = await Message.find({ chatId });
+    
+  
+
+    const messagedata = await Promise.all(
+      messages.map(async (message) => {
+        const user = await User.findById(message.senderId);
+        
+        return {
+          user: { 
+            _id: user._id, 
+            fullname: user.fullname
+          },
+          message: message.message,
+        };
+      })
+    );
+
+    
+    if (!messagedata || messagedata.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    return res.status(200).json(messagedata);
+
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
+  
 });
