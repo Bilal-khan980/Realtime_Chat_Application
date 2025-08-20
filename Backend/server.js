@@ -98,7 +98,7 @@ app.use("/userinfo", authMiddleware, (req, res) => {
 });
 
 //create new chat
-app.post("/chats", async (req, res) => { 
+app.post("/chats",authMiddleware, async (req, res) => { 
   try {
     const { senderId, receiverId } = req.body;
     const newConversation = new Chats({ members: [senderId, receiverId] });
@@ -111,37 +111,41 @@ app.post("/chats", async (req, res) => {
 });
 
 //get all chats for a user
-app.get('/chats/:userId', async (req, res) => {
+app.get('/chats/:userId',authMiddleware, async (req, res) => {
   try {
     const userId = req.params.userId;
 
-    const chats = await Chats.find({members: { $in: [userId] }});
+    // Find all chats where the user is a member
+    const chats = await Chats.find({ members: { $in: [userId] } });
 
-    const chatsdata = Promise.all(
-      chats.map(async (chats) => {
-        const receiverId = chats.members.find(
-          (member) => member !== userId
+    // Collect receiver data for each chat
+    const chatsData = await Promise.all(
+      chats.map(async (chat) => {
+        const receiverId = chat.members.find(
+          (member) => member.toString() !== userId
         );
 
         const user = await User.findById(receiverId);
 
         return {
-          user: {
+          chatId: chat._id,
+          user: user ? {
             email: user.email,
             fullname: user.fullname
-          },
-          chats: chats._id
+          } : null
         };
       })
     );
 
-    res.status(200).json(await chatsdata);
+    res.status(200).json(chatsData);
   } catch (error) {
-    console.log(error, 'Error');
+    console.error("Error fetching chats:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-app.post("/sendmessage", async (req, res) => { 
+
+app.post("/sendmessage", authMiddleware,async (req, res) => { 
   try {
     const { chatId, senderId, message } = req.body;
 
@@ -159,7 +163,7 @@ app.post("/sendmessage", async (req, res) => {
   }
 });
 
-app.get("/getmessages/:chatId", async (req, res) => {
+app.get("/getmessages/:chatId",authMiddleware, async (req, res) => {
   try {
     const chatId = req.params.chatId;
     const messages = await Message.find({ chatId });
@@ -189,6 +193,33 @@ app.get("/getmessages/:chatId", async (req, res) => {
 
   } catch (error) {
     console.error("Error fetching messages:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/allusers/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    // 1. Get all chats of the current user
+    const userChats = await Chats.find({ members: { $in: [userId] } });
+
+    // 2. Collect all members from these chats
+    const existingChatUserIds = userChats.flatMap(chat => chat.members);
+
+    // 4. Now fetch all users who are NOT in this list
+    const users = await User.find({ _id: { $nin: existingChatUserIds } });
+
+    // 5. Map user details for response
+    const userdata = users.map(u => ({
+      _id: u._id,
+      fullname: u.fullname,
+      email: u.email
+    }));
+
+    res.status(200).json(userdata);
+  } catch (error) {
+    console.error("Error fetching users:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
